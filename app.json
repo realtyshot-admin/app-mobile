@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Realty Shot",
+    "slug": "realtyshot-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.realtyshot.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para que puedas subir las imágenes de tus propiedades.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.realtyshot.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-image-picker",
+      "expo-video"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "210b6823-394d-4deb-b598-bbd6382c31ee"
+      }
+    }
+  }
+}
