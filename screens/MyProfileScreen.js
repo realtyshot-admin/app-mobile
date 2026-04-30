@@ -16,6 +16,8 @@ import {
 import { AuthContext } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
+const BACKEND_URL = "https://last-page-979962841585.southamerica-east1.run.app";
+
 export default function MyProfileScreen({ navigation }) {
   const { user, userProfile, loadProfile, logout } = useContext(AuthContext);
 
@@ -25,6 +27,7 @@ export default function MyProfileScreen({ navigation }) {
   const [company, setCompany] = useState("");
   const [address, setAddress] = useState("");
   const [cuit, setCuit] = useState("");
+  const [deletionLoading, setDeletionLoading] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -67,6 +70,55 @@ export default function MyProfileScreen({ navigation }) {
     } catch (err) {
       Alert.alert("Error", err.message);
     }
+  };
+
+  const requestAccountDeletion = async () => {
+    setDeletionLoading(true);
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        Alert.alert("Error", "No se encontró la sesión");
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/request-account-deletion`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        Alert.alert("Error", result.error || "No se pudo enviar la solicitud");
+        return;
+      }
+
+      Alert.alert("Solicitud enviada", "Recibimos tu solicitud para eliminar la cuenta.");
+    } catch (err) {
+      Alert.alert("Error", err.message || "No se pudo enviar la solicitud");
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
+  const confirmAccountDeletionRequest = () => {
+    Alert.alert(
+      "Solicitar eliminar cuenta",
+      "Usted estasolicitando eliminar su cuenta, esta seguro?",
+      [
+        { text: "no", style: "cancel" },
+        {
+          text: "si, solicitar eliminar cuenta",
+          style: "destructive",
+          onPress: requestAccountDeletion,
+        },
+      ]
+    );
   };
 
   if (!userProfile) {
@@ -138,6 +190,16 @@ export default function MyProfileScreen({ navigation }) {
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.deleteAccountButton, deletionLoading && styles.disabledButton]}
+            onPress={confirmAccountDeletionRequest}
+            disabled={deletionLoading}
+          >
+            <Text style={styles.deleteAccountText}>
+              {deletionLoading ? "Enviando solicitud..." : "Solicitar Eliminar Cuenta"}
+            </Text>
+          </TouchableOpacity>
+
         </ScrollView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -201,11 +263,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 999,
     alignItems: "center",
-    marginBottom: 32,
   },
   logoutText: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "600",
+  },
+  deleteAccountButton: {
+    marginTop: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  deleteAccountText: {
+    color: "#dc2626",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });

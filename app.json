@@ -32,8 +32,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-image-picker",
-      "expo-video"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tu galería para que puedas subir las imágenes de tus propiedades."
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

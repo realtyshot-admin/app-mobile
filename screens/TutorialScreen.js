@@ -3,115 +3,89 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Image,
   Animated,
   useWindowDimensions,
+  TouchableOpacity,
+  Image,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
-
+ 
 const SECTIONS = [
   {
+    videoUri: require("../assets/Intro.mp4"),
+  },
+  {
     videoUri: require("../assets/altura.mp4"),
-    badge: "A",
-    title: "ALTURA\nDE CÁMARA",
-    body: "POSICIONÁ LA CÁMARA A LA ALTURA DEL PECHO, APUNTANDO LEVEMENTE HACIA ARRIBA PARA MOSTRAR EL ESPACIO COMPLETO.",
   },
   {
     videoUri: require("../assets/verticales.mp4"),
-    badge: "V",
-    title: "VERTICALES\nPARALELAS",
-    body: "MANTENÉ LAS LÍNEAS VERTICALES RECTAS. LAS PAREDES Y MARCOS DEBEN VERSE PARALELOS EN LA FOTO.",
   },
   {
     videoUri: require("../assets/esquinas.mp4"),
-    badge: "E",
-    title: "ESQUINAS",
-    body: "ENCUADRÁ DESDE LAS ESQUINAS DEL AMBIENTE PARA MOSTRAR LA MAYOR PROFUNDIDAD POSIBLE.",
   },
   {
     videoUri: require("../assets/3paredes.mp4"),
-    badge: "3",
-    title: "3 PAREDES",
-    body: "INTENTÁ QUE SE VEAN AL MENOS TRES PAREDES EN CADA TOMA PARA DAR SENSACIÓN DE AMPLITUD.",
   },
 ];
-
+ 
 function Section({ item, index, scrollY, screenHeight, screenWidth }) {
-  const inputRange = [
-    (index - 0.5) * screenHeight,
-    index * screenHeight,
-    (index + 0.5) * screenHeight,
-  ];
-
-  const opacity = scrollY.interpolate({
-    inputRange,
-    outputRange: [0, 1, 0],
-    extrapolate: "clamp",
+  const screenRatio = screenWidth / screenHeight;
+  const expectedVideoRatio = 9 / 16;
+  const ratioDelta = Math.abs(screenRatio - expectedVideoRatio);
+  const contentFit = ratioDelta <= 0.08 ? "cover" : "contain";
+ 
+  // No arrancamos el video en el inicializador — el scroll se encarga.
+  // Excepción: el index 0 arranca solo porque nunca hay evento de scroll previo.
+  const player = useVideoPlayer(item.videoUri, (p) => {
+    p.loop = true;
+    p.muted = true;
+    if (index === 0) {
+      p.play();
+    }
   });
-
-  const player = useVideoPlayer(item.videoUri, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.play(); // ✅ Reproducir automáticamente
-  });
-
-  // ✅ Asegurar que el video se reproduzca cuando esté en pantalla
+ 
   useEffect(() => {
     const listener = scrollY.addListener(({ value }) => {
       const currentSection = Math.round(value / screenHeight);
       if (currentSection === index) {
         player.play();
+      } else {
+        player.pause();
       }
     });
-
+ 
     return () => {
       scrollY.removeListener(listener);
       player.pause();
     };
   }, [scrollY, index, player, screenHeight]);
-
+ 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, { width: screenWidth, height: screenHeight }]}>
       <VideoView
         player={player}
         style={[styles.bgVideo, { width: screenWidth, height: screenHeight }]}
-        contentFit="cover"
+        contentFit={contentFit}
         nativeControls={false}
       />
-
-      <View style={styles.overlay} />
-
-      <Animated.View style={[styles.content, { opacity }]}>
-        {/* Fila superior: círculo + título */}
-        <View style={styles.topRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.badge}</Text>
-          </View>
-          <Text style={styles.title}>{item.title}</Text>
-        </View>
-
-        {/* Descripción abajo */}
-        <Text style={styles.body}>{item.body}</Text>
-      </Animated.View>
     </View>
   );
 }
-
+ 
 export default function TutorialScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-
+ 
   const openGuide = () => {
     Linking.openURL(
       "https://drive.google.com/file/d/1HSwFHTJU_S_ULFEp8f3sRNvDUGZ2OyN8/preview"
     ).catch(() => {});
   };
-
+ 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}> {/* ✅ Asegurar bordes seguros */}
+    <SafeAreaView style={styles.safe}>
       <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -120,22 +94,20 @@ export default function TutorialScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         pagingEnabled
-        snapToInterval={screenHeight} // ✅ Snap exacto a la altura de pantalla
-        decelerationRate="fast" // ✅ Scroll más preciso
+        snapToInterval={screenHeight}
+        decelerationRate="fast"
       >
         {SECTIONS.map((item, index) => (
-          <View key={index} style={[styles.section, { width: screenWidth, height: screenHeight }]}>
-            <Section
-              item={item}
-              index={index}
-              scrollY={scrollY}
-              screenWidth={screenWidth}
-              screenHeight={screenHeight}
-            />
-          </View>
+          <Section
+            key={index}
+            item={item}
+            index={index}
+            scrollY={scrollY}
+            screenWidth={screenWidth}
+            screenHeight={screenHeight}
+          />
         ))}
-
-        {/* Pantalla final con botón */}
+ 
         <View style={[styles.finalSection, { width: screenWidth, height: screenHeight }]}>
           <Image
             source={require("../assets/icon.png")}
@@ -154,7 +126,7 @@ export default function TutorialScreen() {
     </SafeAreaView>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -167,51 +139,6 @@ const styles = StyleSheet.create({
   bgVideo: {
     position: "absolute",
     top: 0,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.30)",
-  },
-  content: {
-    paddingHorizontal: 28,
-    paddingBottom: 80,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  badge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.85)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 20,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 28,
-    fontWeight: "300",
-    letterSpacing: 2,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 34,
-    fontWeight: "300",
-    letterSpacing: 3,
-    lineHeight: 40,
-    flex: 1,
-    textAlign: "right",
-  },
-  body: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 11,
-    letterSpacing: 2.5,
-    lineHeight: 20,
-    textAlign: "justify",
   },
   finalSection: {
     backgroundColor: "#0a0a0a",
@@ -256,3 +183,4 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
   },
 });
+ 
